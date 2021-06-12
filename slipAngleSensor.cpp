@@ -8,7 +8,7 @@ using namespace cv;
 using namespace std;
 
 const int fps = 20;
-
+//#define DEBUG_PRINT
 void recenterDft(Mat& frame) {
 	int centerX = frame.cols / 2;
 	int centerY = frame.rows / 2;
@@ -105,7 +105,7 @@ void imgPrep(Mat& frame) {
 	//sharpening image 
 	//using unsharp filter(https://homepages.inf.ed.ac.uk/rbf/HIPR2/unsharp.htm) this filter does produce poop results with noise, 
 	//might have to use Laplacian of gaussion filter(dk what is it)
-	imshow("before sharp", frame);
+	//imshow("before sharp", frame);
 	//cole is using this to sharpen the imgae but its not working well (https://answers.opencv.org/question/216383/how-could-do-sharpness-images/)
 	/*
 	Mat sharp;
@@ -144,20 +144,32 @@ void imgPrep(Mat& frame) {
 }
 
 void LineDet(Mat& frame, Mat& dst) {//https://docs.opencv.org/3.4/d9/db0/tutorial_hough_lines.html
-	Mat img, cdst, cdstP;
-	
+	Mat img, cdst, cdstP,dst1;
+
+	if (frame.empty()) {
+		printf(" Error opening image\n");
+		return;
+	}
+
 	//edge detection idk what affect do the values have
 	frame.assignTo(frame, CV_8U);
 	Canny(frame, dst, 50, 200, 3);
+	Canny(frame, dst1, 50, 200, 3);
 	//imshow("canny", dst);
+
 	// Copy edges to the images that will display the results in BGR
 	cvtColor(dst, cdst, COLOR_GRAY2BGR);
+	cvtColor(dst1, cdst, COLOR_GRAY2BGR);
 	//imshow("cvtC", cdst);
-	//cdstP = cdst.clone();
+	cdstP = cdst.clone();
+
+
 	vector<Vec2f> lines; // will hold the results of the detection
 	HoughLines(dst, lines, 1, CV_PI / 180, 60, 0, 0); // runs the actual detection
 	cout << "shits working";
 	// Draw the lines
+	//float rho, theta;
+	//cout << "\n number of lines:" << lines.size();
 	for (size_t i = 0; i < lines.size(); i++)
 	{
 		float rho = lines[i][0], theta = lines[i][1];
@@ -169,9 +181,42 @@ void LineDet(Mat& frame, Mat& dst) {//https://docs.opencv.org/3.4/d9/db0/tutoria
 		pt2.x = cvRound(x0 - 1000 * (-b));
 		pt2.y = cvRound(y0 - 1000 * (a));
 		line(cdst, pt1, pt2, Scalar(0, 0, 255), 3, LINE_AA);
-		cout << lines[i];
+		//cout << lines[i];
+		//cout << "\nthe angles: " << theta;
+
 	}
 	imshow("Detected Lines (in red) - Standard Hough Line Transform", cdst);
+	
+	vector<Vec4i> linesP; // will hold the results of the detection
+	HoughLinesP(dst1, linesP, 1, CV_PI / 180, 50, 50, 10); // runs the actual detection
+	// Draw the lines
+	cout << "\n number of lines:" << linesP.size();
+	float sum = 0;
+	for (size_t i = 0; i < linesP.size(); i++)
+	{
+		Vec4i l = linesP[i];
+		line(cdstP, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0, 0, 255), 3, LINE_AA);
+		float angle = atan2((l[3] - l[1]), (l[2] - l[0])) * 180 / CV_PI;
+
+		if (angle < 0) {
+			angle += 180;
+		}
+		angle -= 90;
+#ifdef DEBUG_PRINT
+		cout << "\nCoordinates: " << Point(l[0], l[1]) << " " << Point(l[2], l[3]);
+		cout << "\nangle from P: " << angle;
+#endif // DEBUG
+
+
+		sum += angle;
+	}
+#ifdef DEBUG_PRINT
+	cout << "\nsum: " << sum;
+#endif // DEBUG
+
+	cout << "\navg: " << sum / linesP.size();
+
+	imshow("Detected Lines (in red) - Probabilistic Line Transform", cdstP);
 }
 
 
@@ -181,7 +226,7 @@ int main()
 	Mat frame = imread("road.png", IMREAD_GRAYSCALE);
 	Mat frame1 = imread("road.png", IMREAD_GRAYSCALE);
 	//Mat frame = imread("input.jpg", IMREAD_GRAYSCALE);
-	imshow("image", frame);
+	//imshow("image", frame);
 	// setting up video capture
 	/*
 	VideoCapture vid;
@@ -234,7 +279,7 @@ int main()
 	
 	LineDet(frameF,frame1);
 
-	imshow("Line Image", frame1);
+	//imshow("Line Image", frame1);
 
 	frameCount++;
 	
