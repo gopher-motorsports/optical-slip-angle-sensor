@@ -29,13 +29,20 @@ void recenterDft(Mat& frame) {
 }
 void take_dft(Mat& frame) {
 	//setting up DFT
-	Mat frame_dft;
-	Mat frameComplex[2] = { frame,Mat::zeros(frame.size(),CV_32F) };
-	merge(frameComplex, 2, frame_dft);
-	Mat fdft;
-	//taking dft
-	dft(frame_dft, frame, DFT_COMPLEX_INPUT);
-	recenterDft(frame);
+	if (frame.empty()) {
+		cout << "empty frame given to dft";
+		return;
+	}
+	else {
+		//imshow("dft", frame);
+		Mat frame_dft;
+		Mat frameComplex[2] = { frame,Mat::zeros(frame.size(),CV_32F) };
+		merge(frameComplex, 2, frame_dft);
+		Mat fdft;
+		//taking dft
+		dft(frame_dft, frame, DFT_COMPLEX_INPUT);
+		recenterDft(frame);
+	}
 }
 
 
@@ -100,6 +107,11 @@ void imgcrop(Mat& frame) {
 void imgPrep(Mat& frame) {
 
 	Mat img;
+	if (frame.empty()) {
+		printf(" Error opening image\n");
+		return;
+	}
+	//imshow("prepImageeeeeeeeeeee", frame);
 	//Converting to 8bit integer
 	//frame.assignTo(frame, CV_8U);
 	//sharpening image 
@@ -134,12 +146,13 @@ void imgPrep(Mat& frame) {
 	imshow("threshold", frame);
 	//morphing the image {open(erosion+dialation)+dialation}
 	
-	int dSize = 3; //use a number between 2-6
+	int dSize = 3; //use a number between 2-6   ##################################################### need to tweak this 
 	Mat element = getStructuringElement(MORPH_RECT,
 		Size(2 * dSize + 1, 2 * dSize + 1),
 		Point(-1, -1));
 	morphologyEx(frame, frame, MORPH_OPEN, element,Point(-1,-1),1);
-
+	
+	imshow("prepImage", frame);
 	//dilate(frame, frame, element,Point(-1,-1),1);
 }
 
@@ -150,20 +163,21 @@ void LineDet(Mat& frame, Mat& dst) {//https://docs.opencv.org/3.4/d9/db0/tutoria
 		printf(" Error opening image\n");
 		return;
 	}
-
+	imshow("linedet111111111111111111111", frame);
 	//edge detection idk what affect do the values have
-	frame.assignTo(frame, CV_8U);
+	frame.assignTo(frame, CV_8U); //############################### the issueeeeeeeeeeeeeee
+	imshow("linedet22222222222222222", frame);
 	Canny(frame, dst, 50, 200, 3);
 	Canny(frame, dst1, 50, 200, 3);
-	//imshow("canny", dst);
+	imshow("canny", dst1);
 
 	// Copy edges to the images that will display the results in BGR
 	cvtColor(dst, cdst, COLOR_GRAY2BGR);
 	cvtColor(dst1, cdst, COLOR_GRAY2BGR);
-	//imshow("cvtC", cdst);
+	imshow("cvtC", cdst);
 	cdstP = cdst.clone();
 
-
+	
 	vector<Vec2f> lines; // will hold the results of the detection
 	HoughLines(dst, lines, 1, CV_PI / 180, 60, 0, 0); // runs the actual detection
 	cout << "shits working";
@@ -203,18 +217,18 @@ void LineDet(Mat& frame, Mat& dst) {//https://docs.opencv.org/3.4/d9/db0/tutoria
 		}
 		angle -= 90;
 #ifdef DEBUG_PRINT
-		cout << "\nCoordinates: " << Point(l[0], l[1]) << " " << Point(l[2], l[3]);
-		cout << "\nangle from P: " << angle;
+		//cout << "\nCoordinates: " << Point(l[0], l[1]) << " " << Point(l[2], l[3]);
+		//cout << "\nangle from P: " << angle;
 #endif // DEBUG
 
 
 		sum += angle;
 	}
 #ifdef DEBUG_PRINT
-	cout << "\nsum: " << sum;
+	//cout << "\nsum: " << sum;
 #endif // DEBUG
 
-	cout << "\navg: " << sum / linesP.size();
+	//cout << "\navg: " << sum / linesP.size();
 
 	imshow("Detected Lines (in red) - Probabilistic Line Transform", cdstP);
 }
@@ -225,19 +239,64 @@ int main()
 {
 	Mat frame = imread("road.png", IMREAD_GRAYSCALE);
 	Mat frame1 = imread("road.png", IMREAD_GRAYSCALE);
-	//Mat frame = imread("input.jpg", IMREAD_GRAYSCALE);
-	//imshow("image", frame);
+	int frameCount = 0;
 	// setting up video capture
 	/*
-	VideoCapture vid;
+	VideoCapture vid("GolfCartRun.mp4");
+	if (!vid.isOpened()) {
+		cout << "Error opening video stream or file" << endl;
+		return -1;
+	}
+	*/
+	/*
+	VideoCapture vid(0);
+	int empty_frame_count = 0;
 	int deviceID = 0;
 	int apiID = cv::CAP_ANY;
 	if (!vid.isOpened()) {
 		cerr << "ERROR! Unable to open camera\n";
-		//return -1;
+		return -1;
 	}
 	*/
-	int frameCount = 0;
+	/*
+	int empty_frame_count=0;
+	for (;;)
+	{
+		Mat frame;
+		vid >> frame; // get a new frame from camera
+		if (frame.empty())
+		{
+			empty_frame_count++;
+			if (empty_frame_count > 20) break;
+			frame = Mat::zeros(480, 640, CV_8UC3);
+			waitKey(100);
+		}
+		else if(frameCount > 5){
+			imshow("VideoCapture", frame);
+			Mat frameF;
+			Mat frameDft;
+			frame.convertTo(frameF, CV_32F, 1.0 / 255.0);
+			cvtColor(frameF, frameF, COLOR_BGR2GRAY);
+			take_dft(frameF);
+			showDFT(frameF);
+			//imshow("VideoCapture", frameF);
+			Mat inv;
+			//imgcrop(frameF);
+			invDft(frameF);
+			showIDFT(frameF);
+			imgPrep(frameF);
+			LineDet(frameF, frame);
+			
+		}
+		frameCount++;
+		if (waitKey(30) >= 0) break;
+
+	}
+	return 1;
+}
+*/
+	
+	//int frameCount = 0;
 	int noLineCount = 0;
 	int lineCount = 0;
 	//create a stack for angleHistogram and allAngles MAYBE
@@ -279,16 +338,17 @@ int main()
 	
 	LineDet(frameF,frame1);
 
-	//imshow("Line Image", frame1);
-
+	imshow("Line Image", frame1);
+	
 	frameCount++;
 	
 	
 	waitKey();
 	//time(&end);
 
-//}
-
-	return 1;
 }
+
+
+
+//}
 
