@@ -42,7 +42,6 @@ void take_dft(Mat& frame) {
 void invDft(Mat& frame) {
 	Mat inv;
 	dft(frame, frame, DFT_INVERSE | DFT_REAL_OUTPUT | DFT_SCALE);
-	//waitKey();
 }
 
 void showDFT(Mat& frame) {
@@ -53,9 +52,6 @@ void showDFT(Mat& frame) {
 	dftMag += Scalar::all(1);
 	log(dftMag, dftMag);
 	normalize(dftMag, dftMag, 0, 1, NORM_MINMAX);
-	//recenterDft(dftMag);
-	//imshow("dft", dftMag);
-	//waitKey();
 }
 
 void showIDFT(Mat& frame) {
@@ -66,9 +62,7 @@ void showIDFT(Mat& frame) {
 	dftMag += Scalar::all(1);
 	log(dftMag, dftMag);
 	normalize(dftMag, dftMag, 0, 1, NORM_MINMAX);
-	//recenterDft(dftMag);
-	//imshow("inv_dft", dftMag);
-	//waitKey();
+	imshow("inv_dft", dftMag);
 }
 
 void showCDFT(Mat& frame) {
@@ -79,10 +73,6 @@ void showCDFT(Mat& frame) {
 	dftMag += Scalar::all(1);
 	log(dftMag, dftMag);
 	normalize(dftMag, dftMag, 0, 1, NORM_MINMAX);
-	//recenterDft(dftMag);
-	//imshow("crop_dft", dftMag);
-	//waitKey();
-
 }
 
 void imgcrop(Mat& frame) {
@@ -91,71 +81,83 @@ void imgcrop(Mat& frame) {
 	int ccols = frame.size().height / 2;
 	int x = 30;
 
-	//cv::Mat img(100, 100, CV_8U, cv::Scalar(255));
 	frame(cv::Rect(crows - (x / 2), ccols - (x / 2), x, x)) = 0;
-	//change the width and height of the image accordingly
-	//Mat img = frame(Rect(crows-(x/2), ccols-(x/2), x, x));
 	showCDFT(frame);
 }
 void imgPrep(Mat& frame) {
 
 	Mat img;
-	//Converting to 8bit integer
+	if (frame.empty()) {
+		printf(" Error opening image\n");
+		return;
+	}
 	//frame.assignTo(frame, CV_8U);
-	//sharpening image 
-	//using unsharp filter(https://homepages.inf.ed.ac.uk/rbf/HIPR2/unsharp.htm) this filter does produce poop results with noise, 
-	//might have to use Laplacian of gaussion filter(dk what is it)
-	//imshow("before sharp", frame);
-	//cole is using this to sharpen the imgae but its not working well (https://answers.opencv.org/question/216383/how-could-do-sharpness-images/)
-	/*
-	Mat sharp;
-	Mat sharpening_kernel = (Mat_<double>(3, 3) << -1, -1, -1,
-		-1, 9, -1,
-		-1, -1, -1);
-	filter2D(frame, sharp, -1, sharpening_kernel);
-	imshow("after sharp", frame);
+	//cv::GaussianBlur(frame, frame, cv::Size(1, 1), 3);
+	//cv::addWeighted(frame, 1.5, frame, -0.5, 0, frame);
+	//cvtColor(frame, frame, COLOR_BGR2GRAY);
+	imshow("blurrssss ", frame);
+	//cout << frame;;
 
-	double sigma = 1, amount = 1;
-	Mat blurry, sharp;
-	GaussianBlur(frame, blurry, Size(), sigma);
-	addWeighted(frame, 1 + amount, blurry, -amount, 0, sharp);
-	Mat lowContrastMask = abs(frame - blurry) < 100000; //experiment with values
-	sharp = frame * (1 + amount) + blurry * (-amount); //this is the same as addWeighted - is addWeightd obsolete??
-	frame.copyTo(sharp, lowContrastMask);
-	imshow("after sharp", sharp);
-	*/
-
-	
-	cv::GaussianBlur(frame, frame, cv::Size(1, 1), 3);
-	cv::addWeighted(frame, 1.5, frame, -0.5, 0, frame);
-	
-	//image thresholding
-	threshold(frame, frame, 0, 255, THRESH_BINARY);
-	imshow("threshold", frame);
-	//morphing the image {open(erosion+dialation)+dialation}
-	
-	int dSize = 3; //use a number between 2-6
+	int dSize = 1; //use a number between 2-6
 	Mat element = getStructuringElement(MORPH_RECT,
 		Size(2 * dSize + 1, 2 * dSize + 1),
 		Point(-1, -1));
-	morphologyEx(frame, frame, MORPH_OPEN, element,Point(-1,-1),1);
+	morphologyEx(frame, frame, MORPH_OPEN, element, Point(-1, -1), 1);
+	imshow("morph", frame);
+	//cout << "frameeeeeeeee" << frame <<endl;
+	//image thresholding
+	cv::absdiff(frame, cv::Scalar::all(0), frame);
+	imshow("aasdfa",frame);
+	//cout << frame;
+	threshold(frame, frame, 0.1, 1.0, THRESH_BINARY); //asdadsdsdafsadfsdfsafasfasfsdfsadfasdfasfdasffasdfasdf
+	imshow("threshold", frame);
+	//morphing the image {open(erosion+dialation)+dialation}
 
-	//dilate(frame, frame, element,Point(-1,-1),1);
+	//int dSize = 3; //use a number between 2-6   ##################################################### need to tweak this 
+	//Mat element = getStructuringElement(MORPH_RECT,
+	//	Size(2 * dSize + 1, 2 * dSize + 1),
+	//	Point(-1, -1));
+	//morphologyEx(frame, frame, MORPH_OPEN, element, Point(-1, -1), 1);
+
+	imshow("prepImage", frame);
+	//frame.assignTo(frame, CV_32F);
+}
+
+string type2str(int type) {
+	string r;
+	uchar depth = type & CV_MAT_DEPTH_MASK;
+	uchar chans = 1 + (type >> CV_CN_SHIFT);
+	switch (depth) {
+	case CV_8U:  r = "8U"; break;
+	case CV_8S:  r = "8S"; break;
+	case CV_16U: r = "16U"; break;
+	case CV_16S: r = "16S"; break;
+	case CV_32S: r = "32S"; break;
+	case CV_32F: r = "32F"; break;
+	case CV_64F: r = "64F"; break;
+	default:     r = "User"; break;
+	}
+	r += "C";
+	r += (chans + '0');
+	return r;
 }
 
 void LineDet(Mat& frame, Mat& dst) {//https://docs.opencv.org/3.4/d9/db0/tutorial_hough_lines.html
-	Mat img, cdst, cdstP,dst1;
+	Mat img, cdst, cdstP, dst1;
 
 	if (frame.empty()) {
 		printf(" Error opening image\n");
 		return;
 	}
-
 	//edge detection idk what affect do the values have
-	frame.assignTo(frame, CV_8U);
+	//imshow("linedet111111111111111111111", frame);
+	string ty = type2str(frame.type());
+	printf("Matrix: %s %dx%d \n", ty.c_str(), frame.cols, frame.rows);
+	frame.assignTo(frame, CV_8U); //############################### the issueeeeeeeeeeeeeee
+	//imshow("linedet22222222222222222", frame);
 	Canny(frame, dst, 50, 200, 3);
 	Canny(frame, dst1, 50, 200, 3);
-	//imshow("canny", dst);
+	//imshow("canny", dst1);
 
 	// Copy edges to the images that will display the results in BGR
 	cvtColor(dst, cdst, COLOR_GRAY2BGR);
@@ -163,13 +165,11 @@ void LineDet(Mat& frame, Mat& dst) {//https://docs.opencv.org/3.4/d9/db0/tutoria
 	//imshow("cvtC", cdst);
 	cdstP = cdst.clone();
 
-
 	vector<Vec2f> lines; // will hold the results of the detection
 	HoughLines(dst, lines, 1, CV_PI / 180, 60, 0, 0); // runs the actual detection
 	cout << "shits working";
+	
 	// Draw the lines
-	//float rho, theta;
-	//cout << "\n number of lines:" << lines.size();
 	for (size_t i = 0; i < lines.size(); i++)
 	{
 		float rho = lines[i][0], theta = lines[i][1];
@@ -181,12 +181,10 @@ void LineDet(Mat& frame, Mat& dst) {//https://docs.opencv.org/3.4/d9/db0/tutoria
 		pt2.x = cvRound(x0 - 1000 * (-b));
 		pt2.y = cvRound(y0 - 1000 * (a));
 		line(cdst, pt1, pt2, Scalar(0, 0, 255), 3, LINE_AA);
-		//cout << lines[i];
-		//cout << "\nthe angles: " << theta;
 
 	}
 	imshow("Detected Lines (in red) - Standard Hough Line Transform", cdst);
-	
+
 	vector<Vec4i> linesP; // will hold the results of the detection
 	HoughLinesP(dst1, linesP, 1, CV_PI / 180, 50, 50, 10); // runs the actual detection
 	// Draw the lines
@@ -203,92 +201,72 @@ void LineDet(Mat& frame, Mat& dst) {//https://docs.opencv.org/3.4/d9/db0/tutoria
 		}
 		angle -= 90;
 #ifdef DEBUG_PRINT
-		cout << "\nCoordinates: " << Point(l[0], l[1]) << " " << Point(l[2], l[3]);
-		cout << "\nangle from P: " << angle;
+		//cout << "\nCoordinates: " << Point(l[0], l[1]) << " " << Point(l[2], l[3]);
+		//cout << "\nangle from P: " << angle;
 #endif // DEBUG
 
 
 		sum += angle;
 	}
 #ifdef DEBUG_PRINT
-	cout << "\nsum: " << sum;
+	//cout << "\nsum: " << sum;
 #endif // DEBUG
 
-	cout << "\navg: " << sum / linesP.size();
+	//cout << "\navg: " << sum / linesP.size();
 
 	imshow("Detected Lines (in red) - Probabilistic Line Transform", cdstP);
 }
 
 
-
 int main()
 {
-	Mat frame = imread("road.png", IMREAD_GRAYSCALE);
-	Mat frame1 = imread("road.png", IMREAD_GRAYSCALE);
-	//Mat frame = imread("input.jpg", IMREAD_GRAYSCALE);
-	//imshow("image", frame);
 	// setting up video capture
-	/*
-	VideoCapture vid;
-	int deviceID = 0;
-	int apiID = cv::CAP_ANY;
+
+	VideoCapture vid("GolfCartRun.mp4");
 	if (!vid.isOpened()) {
-		cerr << "ERROR! Unable to open camera\n";
-		//return -1;
+		cout << "Error opening video stream or file" << endl;
+		return -1;
 	}
-	*/
-	int frameCount = 0;
-	int noLineCount = 0;
-	int lineCount = 0;
-	//create a stack for angleHistogram and allAngles MAYBE
 
-	//time_t start, end;
-		//Defining variables to take the DFT
-	Mat frameF;
-	Mat frameDft;
-	//Video Capture begins
-	//for (;;) {
-		//reading in each frame
-		//vid.read(frame);
-		//resizing the image ( the last 2 parameters are for scaling )
-		//cv::resize(frame, frame, cv::Size(), 0.60, 0.60);
-		//convert each image to grayscale for DFT to work
-		//cvtColor(frame, frame, COLOR_BGR2GRAY);
+	int frameCount=0;
+	int empty_frame_count = 0;
+	for (;;)
+	{
+		Mat frame,frame1;
+		vid >> frame; // get a new frame from camera
+		frame.copyTo(frame1);
+		if (frame.empty())
+		{
+			empty_frame_count++;
+			if (empty_frame_count > 20) break;
+			frame = Mat::zeros(480, 640, CV_8UC3);
+			waitKey(100);
+		}
+		else if (frameCount > 5) {
 
-		//time(&start);
-	//imshow("img", frame);
-
-	//Starting DFT
-
-	frame.convertTo(frameF, CV_32F, 1.0 / 255.0);
-	take_dft(frameF);
-
-	showDFT(frameF);
-	Mat inv;
-	imgcrop(frameF);
+			Mat frameF;
+			cvtColor(frame, frame, COLOR_BGR2GRAY);
+			frame.convertTo(frameF, CV_32F, 1.0 / 255.0);
+			take_dft(frameF);
+			showDFT(frameF);
+			imgcrop(frameF);
+			invDft(frameF);
+			showIDFT(frameF);
 
 
-	invDft(frameF);
-	showIDFT(frameF);
+			imgPrep(frameF);
+			imshow("prepImage", frameF);
+			imwrite("output.png", frameF);
 
-	imgPrep(frameF);
-	
-	imshow("prepImage", frameF);
-	imwrite("output.png",frameF);
-	
-	
-	LineDet(frameF,frame1);
+			LineDet(frameF, frame1);
 
-	//imshow("Line Image", frame1);
+			imshow("Line Image", frame1);
 
-	frameCount++;
-	
-	
-	waitKey();
-	//time(&end);
+			frameCount++;
+		}
+		frameCount++;
+		if (waitKey(30) >= 0) break;
 
-//}
-
+	}
 	return 1;
 }
-
